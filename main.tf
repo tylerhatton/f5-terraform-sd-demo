@@ -2,6 +2,10 @@
 #   version = "~> 2.3"
 # }
 
+locals {
+  bigip_count = 2
+}
+
 data "aws_ssm_parameter" "bigiq_server" {
   name = "/lab-parameters/f5/bigiq_server"
 }
@@ -41,7 +45,7 @@ module "nlb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 5.0"
 
-  name = "${terraform.workspace}-nlb"
+  name = "${terraform.workspace}-external-nlb"
 
   load_balancer_type = "network"
 
@@ -70,10 +74,18 @@ module "nlb" {
   }
 }
 
+resource "aws_lb_target_group_attachment" "external" {
+  count = local.bigip_count
+
+  target_group_arn = module.nlb.target_group_arns[0]
+  target_id = module.f5_ltm[count.index].f5_external_private_ips[0]
+  port = 80
+}
+
 module "f5_ltm" {
   source               = "git@github.com:wwt/f5-ltm-tf-template.git"
 
-  count = 2
+  count = local.bigip_count
 
   key_pair             = var.key_pair
   name_prefix          = "${terraform.workspace}-${count.index}-"
@@ -93,4 +105,15 @@ module "f5_ltm" {
   bigiq_password       = data.aws_ssm_parameter.bigiq_password.value
   license_pool         = data.aws_ssm_parameter.license_pool.value
   provisioned_modules  = ["\"ltm\": \"nominal\""]
+}
+
+module "consul" {
+  source  = "hashicorp/consul/aws"
+  version = "0.8.0"
+  
+  ssh_key_name = var.key_pair
+  vpc_id       = module.vpc.vpc_id
+
+  num_clients = 1
+  num_servers = 1
 }
