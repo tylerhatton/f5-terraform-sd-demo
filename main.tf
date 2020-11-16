@@ -108,6 +108,16 @@ module "f5_ltm" {
   provisioned_modules  = ["\"ltm\": \"nominal\""]
 }
 
+module "consul" {
+  source = "./modules/consul"
+
+  vpc_id    = module.vpc.vpc_id
+  subnet_id = module.vpc.private_subnets[0]
+  key_pair  = var.key_pair
+  name_prefix = "${terraform.workspace}-"
+  allow_from = module.vpc.vpc_cidr_block
+}
+
 data "aws_ami" "ubuntu-focal" {
   most_recent = true
 
