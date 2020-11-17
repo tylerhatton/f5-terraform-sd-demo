@@ -23,12 +23,12 @@ resource "aws_instance" "consul" {
   tags = merge(map("Name", "${var.name_prefix}consul"), var.tags)
 }
 
+## IAM
 resource "aws_iam_instance_profile" "consul" {
   name = "${var.name_prefix}consul_sd"
   role = aws_iam_role.consul.name
 }
 
-## IAM
 resource "aws_iam_role" "consul" {
   name = "${var.name_prefix}f5-consul-role"
 
@@ -71,6 +71,7 @@ resource "aws_iam_role_policy" "consul" {
 EOF
 }
 
+## Security Group
 resource "aws_security_group" "consul" {
   name   = "${var.name_prefix}consul"
   vpc_id = var.vpc_id

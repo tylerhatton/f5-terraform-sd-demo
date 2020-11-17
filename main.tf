@@ -116,34 +116,50 @@ module "consul" {
   key_pair  = var.key_pair
   name_prefix = "${terraform.workspace}-"
   allow_from = module.vpc.vpc_cidr_block
-}
-
-data "aws_ami" "ubuntu-focal" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  owners      = ["099720109477"]
-}
-
-module "ec2_cluster" {
-  source                 = "terraform-aws-modules/ec2-instance/aws"
-  version                = "~> 2.0"
-
-  name                   = "nginx"
-  instance_count         = local.nginx_count
-
-  ami                    = data.aws_ami.ubuntu-focal.id
-  instance_type          = "t3.micro"
-  key_name               = var.key_pair
-  monitoring             = true
-  subnet_id              = module.vpc.private_subnets[0]
 
   tags = {
-    Terraform   = "true"
-    Lab_ID = terraform.workspace
+    Env = "consul"
   }
 }
+
+module "nginx" {
+  source = "./modules/nginx"
+
+  vpc_id    = module.vpc.vpc_id
+  subnet_id = module.vpc.private_subnets[0]
+  key_pair  = var.key_pair
+  name_prefix = "${terraform.workspace}-"
+  allow_from = module.vpc.vpc_cidr_block
+
+  env_name = "consul"
+}
+
+# data "aws_ami" "ubuntu-focal" {
+#   most_recent = true
+
+#   filter {
+#     name   = "name"
+#     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+#   }
+
+#   owners      = ["099720109477"]
+# }
+
+# module "ec2_cluster" {
+#   source                 = "terraform-aws-modules/ec2-instance/aws"
+#   version                = "~> 2.0"
+
+#   name                   = "nginx"
+#   instance_count         = local.nginx_count
+
+#   ami                    = data.aws_ami.ubuntu-focal.id
+#   instance_type          = "t3.micro"
+#   key_name               = var.key_pair
+#   monitoring             = true
+#   subnet_id              = module.vpc.private_subnets[0]
+
+#   tags = {
+#     Terraform   = "true"
+#     Lab_ID = terraform.workspace
+#   }
+# }
