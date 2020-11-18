@@ -1,10 +1,8 @@
-# provider "aws" {
-#   version = "~> 2.3"
-# }
-
 locals {
   bigip_count = 2
   nginx_count = 2
+
+  ansible_group_name = "${terraform.workspace}_consul_demo"
 }
 
 data "aws_ssm_parameter" "bigiq_server" {
@@ -84,7 +82,8 @@ resource "aws_lb_target_group_attachment" "external" {
 }
 
 module "f5_ltm" {
-  source               = "git@github.com:wwt/f5-ltm-tf-template.git"
+  # source               = "git@github.com:wwt/f5-ltm-tf-template.git"
+  source               = "../f5-ltm-tf-template"
 
   count = local.bigip_count
 
@@ -106,6 +105,19 @@ module "f5_ltm" {
   bigiq_password       = data.aws_ssm_parameter.bigiq_password.value
   license_pool         = data.aws_ssm_parameter.license_pool.value
   provisioned_modules  = ["\"ltm\": \"nominal\""]
+
+  default_tags = {
+    Terraform = "true"
+    ansible_group = local.ansible_group_name
+  }
+}
+
+resource "aws_ssm_parameter" "bigip_admin_password" {
+  count = local.bigip_count
+
+  name = "/infrastructure/credentials/bigip/${module.f5_ltm[count.index].f5_management_ip}"
+  type = "SecureString"
+  value = module.f5_ltm[count.index].f5_admin_password
 }
 
 module "consul" {
@@ -133,33 +145,3 @@ module "nginx" {
 
   env_name = "consul"
 }
-
-# data "aws_ami" "ubuntu-focal" {
-#   most_recent = true
-
-#   filter {
-#     name   = "name"
-#     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-#   }
-
-#   owners      = ["099720109477"]
-# }
-
-# module "ec2_cluster" {
-#   source                 = "terraform-aws-modules/ec2-instance/aws"
-#   version                = "~> 2.0"
-
-#   name                   = "nginx"
-#   instance_count         = local.nginx_count
-
-#   ami                    = data.aws_ami.ubuntu-focal.id
-#   instance_type          = "t3.micro"
-#   key_name               = var.key_pair
-#   monitoring             = true
-#   subnet_id              = module.vpc.private_subnets[0]
-
-#   tags = {
-#     Terraform   = "true"
-#     Lab_ID = terraform.workspace
-#   }
-# }

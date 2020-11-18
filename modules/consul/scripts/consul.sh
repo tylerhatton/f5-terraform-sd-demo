@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #Utils
+sudo apt-get update
 sudo apt-get install unzip
 
 #Download Consul
