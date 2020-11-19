@@ -6,7 +6,7 @@ data "aws_ami" "ubuntu" {
     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
 
-  owners      = ["099720109477"]
+  owners = ["099720109477"]
 }
 
 resource "aws_autoscaling_group" "nginx" {
@@ -37,9 +37,9 @@ resource "aws_autoscaling_group" "nginx" {
 }
 
 resource "aws_launch_configuration" "nginx" {
-  name_prefix                 = "${var.name_prefix}nginx-"
-  image_id                    = data.aws_ami.ubuntu.id
-  instance_type               = "t2.micro"
+  name_prefix   = "${var.name_prefix}nginx-"
+  image_id      = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
 
   security_groups = [aws_security_group.nginx.id]
   key_name        = var.key_pair

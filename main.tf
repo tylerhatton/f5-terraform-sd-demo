@@ -1,10 +1,3 @@
-locals {
-  bigip_count = 2
-  nginx_count = 2
-
-  ansible_group_name = "${terraform.workspace}_consul_demo"
-}
-
 data "aws_ssm_parameter" "bigiq_server" {
   name = "/lab-parameters/f5/bigiq_server"
 }
@@ -36,7 +29,7 @@ module "vpc" {
 
   tags = {
     Terraform = "true"
-    Lab_ID = terraform.workspace
+    Lab_ID    = terraform.workspace
   }
 }
 
@@ -69,65 +62,73 @@ module "nlb" {
 
   tags = {
     Terraform = "true"
-    Lab_ID = terraform.workspace
+    Lab_ID    = terraform.workspace
   }
 }
 
 resource "aws_lb_target_group_attachment" "external" {
-  count = local.bigip_count
+  count = var.bigip_count
 
   target_group_arn = module.nlb.target_group_arns[0]
-  target_id = module.f5_ltm[count.index].f5_external_private_ips[0]
-  port = 80
+  target_id        = module.f5_ltm[count.index].f5_external_private_ips[0]
+  port             = 80
 }
 
 module "f5_ltm" {
   # source               = "git@github.com:wwt/f5-ltm-tf-template.git"
-  source               = "../f5-ltm-tf-template"
+  source = "../f5-ltm-tf-template"
 
-  count = local.bigip_count
+  count = var.bigip_count
 
-  key_pair             = var.key_pair
-  name_prefix          = "${terraform.workspace}-${count.index}-"
+  key_pair    = var.key_pair
+  name_prefix = "${terraform.workspace}-${count.index}-"
 
   vpc_id               = module.vpc.vpc_id
   management_subnet_id = module.vpc.public_subnets[1]
   external_subnet_id   = module.vpc.public_subnets[0]
   internal_subnet_id   = module.vpc.private_subnets[0]
 
-  external_ips         = ["10.128.10.10${count.index}"]
-  internal_ips         = ["10.128.20.10${count.index}"]
-  management_ip        = "10.128.30.10${count.index}"
-  include_public_ip    = true
-  
-  bigiq_server         = data.aws_ssm_parameter.bigiq_server.value
-  bigiq_username       = data.aws_ssm_parameter.bigiq_username.value
-  bigiq_password       = data.aws_ssm_parameter.bigiq_password.value
-  license_pool         = data.aws_ssm_parameter.license_pool.value
-  provisioned_modules  = ["\"ltm\": \"nominal\""]
+  external_ips      = ["10.128.10.10${count.index}"]
+  internal_ips      = ["10.128.20.10${count.index}"]
+  management_ip     = "10.128.30.10${count.index}"
+  include_public_ip = true
+
+  bigiq_server        = data.aws_ssm_parameter.bigiq_server.value
+  bigiq_username      = data.aws_ssm_parameter.bigiq_username.value
+  bigiq_password      = data.aws_ssm_parameter.bigiq_password.value
+  license_pool        = data.aws_ssm_parameter.license_pool.value
+  provisioned_modules = ["\"ltm\": \"nominal\""]
 
   default_tags = {
-    Terraform = "true"
-    ansible_group = local.ansible_group_name
+    Terraform     = "true"
+    ansible_group = "${terraform.workspace}_consul_demo"
   }
 }
 
 resource "aws_ssm_parameter" "bigip_admin_password" {
-  count = local.bigip_count
+  count = var.bigip_count
 
-  name = "/infrastructure/credentials/bigip/${module.f5_ltm[count.index].f5_management_ip}"
-  type = "SecureString"
+  name  = "/infrastructure/credentials/bigip/${module.f5_ltm[count.index].f5_management_ip}/password"
+  type  = "SecureString"
   value = module.f5_ltm[count.index].f5_admin_password
+}
+
+resource "aws_ssm_parameter" "bigip_vip_address" {
+  count = var.bigip_count
+
+  name  = "/infrastructure/credentials/bigip/${module.f5_ltm[count.index].f5_management_ip}/vip_address"
+  type  = "String"
+  value = module.f5_ltm[count.index].f5_external_private_ips[0]
 }
 
 module "consul" {
   source = "./modules/consul"
 
-  vpc_id    = module.vpc.vpc_id
-  subnet_id = module.vpc.private_subnets[0]
-  key_pair  = var.key_pair
+  vpc_id      = module.vpc.vpc_id
+  subnet_id   = module.vpc.private_subnets[0]
+  key_pair    = var.key_pair
   name_prefix = "${terraform.workspace}-"
-  allow_from = module.vpc.vpc_cidr_block
+  allow_from  = module.vpc.vpc_cidr_block
 
   tags = {
     Env = "consul"
@@ -137,11 +138,22 @@ module "consul" {
 module "nginx" {
   source = "./modules/nginx"
 
-  vpc_id    = module.vpc.vpc_id
-  subnet_id = module.vpc.private_subnets[0]
-  key_pair  = var.key_pair
-  name_prefix = "${terraform.workspace}-"
-  allow_from = module.vpc.vpc_cidr_block
+  vpc_id           = module.vpc.vpc_id
+  subnet_id        = module.vpc.private_subnets[0]
+  key_pair         = var.key_pair
+  name_prefix      = "${terraform.workspace}-"
+  allow_from       = module.vpc.vpc_cidr_block
+  desired_capacity = var.nginx_count
 
   env_name = "consul"
+}
+
+resource "null_resource" "ansible" {
+  triggers = {
+    f5_ltm_management_ips = join(",", module.f5_ltm[*].f5_management_ip)
+  }
+
+  provisioner "local-exec" {
+    command = "ansible-playbook playbooks/site.yml -i playbooks/aws_ec2.yml -e consul_ip=${module.consul.private_ip}"
+  }
 }

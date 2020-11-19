@@ -8,7 +8,7 @@ data "aws_ami" "ubuntu" {
     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
 
-  owners      = ["099720109477"]
+  owners = ["099720109477"]
 }
 
 resource "aws_instance" "consul" {
@@ -19,7 +19,7 @@ resource "aws_instance" "consul" {
   user_data              = file("${path.module}/scripts/consul.sh")
   iam_instance_profile   = aws_iam_instance_profile.consul.name
   key_name               = var.key_pair
-  
+
   tags = merge(map("Name", "${var.name_prefix}consul"), var.tags)
 }
 

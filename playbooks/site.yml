@@ -13,20 +13,20 @@
     uri:
       url: "https://{{ public_ip_address }}/mgmt/shared/appsvcs/info"
       user: "admin"
-      password: "{{ lookup('aws_ssm', '/infrastructure/credentials/bigip/' + public_ip_address ) }}"
+      password: "{{ lookup('aws_ssm', '/infrastructure/credentials/bigip/' + public_ip_address + '/password' ) }}"
       method: GET
       force_basic_auth: true
       status_code: 200
       validate_certs: false
     register: result
     until: result.status == 200
-    retries: 240 # 720 * 5 seconds = 1hour (60*60/5)
-    delay: 5 # Every 5 seconds
+    retries: 240
+    delay: 5
   - name: Apply AS3 Declaration
     uri:
       url: "https://{{ public_ip_address }}/mgmt/shared/appsvcs/declare"
       user: "admin"
-      password: "{{ lookup('aws_ssm', '/infrastructure/credentials/bigip/' + public_ip_address ) }}"
+      password: "{{ lookup('aws_ssm', '/infrastructure/credentials/bigip/' + public_ip_address + '/password' ) }}"
       method: POST
       body_format: "json"
       body: "{{ lookup('template','templates/as3.j2') }}"
