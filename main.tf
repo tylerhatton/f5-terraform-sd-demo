@@ -75,7 +75,7 @@ resource "aws_lb_target_group_attachment" "external" {
 }
 
 module "f5_ltm" {
-  source = "git@github.com:tylerhatton/f5-bigip-tf-module.git"
+  source = "github.com/tylerhatton/f5-terraform-tf-template"
 
   count = var.bigip_count
 
