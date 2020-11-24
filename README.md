@@ -6,6 +6,8 @@ A series of Terraform templates and Ansible playbooks that demonstrates the foll
 3. Using Terraform local provisioners and an Ansible Playbook to push an [F5 AS3](https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/) declaration defining the load balancing configuration on the F5 VE.
 4. Leveraging the F5 AS3 [Service Discovery](https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/declarations/discovery.html) functionality to pull load balancing pool members from Consul.
 
+![Diagram1](images/diagram1.png)
+
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
 
