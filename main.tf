@@ -150,6 +150,8 @@ module "nginx" {
 resource "null_resource" "ansible" {
   triggers = {
     f5_ltm_management_ips = join(",", module.f5_ltm[*].f5_management_ip)
+    ansible_playbook_hash = sha256(file("./playbooks/site.yml"))
+    as3_declaration_hash  = sha256(file("./playbooks/templates/as3.j2"))
   }
 
   provisioner "local-exec" {
