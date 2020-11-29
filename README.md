@@ -13,7 +13,7 @@ A series of Terraform templates and Ansible playbooks that demonstrates the foll
 
 | Name | Version |
 |------|---------|
-| terraform | >= 0.13.5 |
+| terraform | >= 0.13.2 |
 | aws | >= 2.3 |
 | null | >= 3.0 |
 | random | >= 2.3 |
